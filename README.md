@@ -78,32 +78,37 @@ python initialize_pcd.py --data <path to data>
 <details>
 <summary><span style="font-weight: bold;">Command line arguments for initialize_pcd.py</span></summary>
 
-##### -data
+##### --data
 
 Path to the source directory containing `meta_data.json` or `*.pickle`.
 
-##### -output
+##### --output
 
 Path to the output `*.npy` file. `<path to data>/<data name>_init.npy` by default.
 
 ##### --evaluate
+
 Add this flag to evaluate the 3D PSNR of initial Gaussians. It is used for debugging purpose since it uses the ground truth volume.
 
-##### -recon_method
+##### --recon_method
 
 Method used for reconstructing initial volume. Now we support `fdk` (sample from FDK volume) or `random` (sample randomly). `fdk` by default.
 
-##### -n_points
+##### --n_points
 
 Number of points for initialization. `50000` by default.
 
-##### -density_thresh
+##### --density_thresh
 
 We sample voxels with density higher than the threshold. `0.05` by default.
 
-##### -density_rescale
+##### --density_rescale
 
-We emperically rescale the queried density value to account for occlusion. `0.15` by default.
+We empirically rescale the queried density value to account for occlusion. `0.15` by default.
+
+##### --random_density_max
+
+Maximum density for random initialization. `1.0` by default.
 
 </details>
 <br>
@@ -111,7 +116,6 @@ We emperically rescale the queried density value to account for occlusion. `0.15
 :exclamation: Initialization is important for most 3DGS-based methods, including ours. We initialize the point clouds by sampling from a noisy volume reconstructed using the FDK algorithm.
 
 Our default settings assume the density ranges from `[0, 1]`. You may need to adjust the parameters in `initialize_pcd.py` according to your dataset to achieve better results. To assess the quality of the initialization, add `--evaluation` flag.
-
 
 ### 3.2 Training
 
@@ -131,37 +135,37 @@ python train.py -s XXX/*.pickle  # NAF format
 
 #### Dataset and Model
 
-##### -source_path / -s
+##### --source_path / -s
 
 Path to the source directory containing `meta_data.json` or `*.pickle`.
 
-##### -model_path / -m
+##### --model_path / -m
 
 Path where the trained model should be stored (```output/<random>``` by default).
 
-##### -ply_path
+##### --ply_path
 
 Path to initialization point cloud `*.npy`. `<path to data>/init_<data name>.npy` by default.
 
-##### -scale_min
+##### --scale_min
 
 Minimum scale of a Gaussian (expressed as a percentage of the volume size). `0.0005` by default.
 
-##### -scale_max
+##### --scale_max
 
 Maximum scale of a Gaussian (expressed as a percentage of the volume size). `0.5` by default.
 
-##### -eval
+##### --eval
 
 Add this flag to evaluate 2D rendering during training.
 
 #### Optimizer
 
-##### -iterations
+##### --iterations
 
 Number of total iterations to train for, `30_000` by default.
 
-##### -position_lr_init
+##### --position_lr_init
 
 Initial position learning rate, `0.0002` by default.
   
@@ -169,117 +173,117 @@ Initial position learning rate, `0.0002` by default.
 
 Initial position learning rate, `0.00002` by default.
   
-##### -position_lr_max_steps
+##### --position_lr_max_steps
 
 Number of steps (from 0) where position learning rate goes from `initial` to `final`. `30_000` by default.
   
-##### -density_lr_init
+##### --density_lr_init
 
 Initial density learning rate, `0.01` by default.
   
-##### -density_lr_final
+##### --density_lr_final
   
 Initial density learning rate, `0.001` by default.
   
-##### -density_lr_max_steps
+##### --density_lr_max_steps
   
 Number of steps (from 0) where density learning rate goes from `initial` to `final`. `30_000` by default.
   
-##### -scaling_lr_init
+##### --scaling_lr_init
   
 Initial scaling learning rate, `0.005` by default.
   
-##### -scaling_lr_final
+##### --scaling_lr_final
   
 Initial scaling learning rate, `0.0005` by default.
   
-##### -scaling_lr_max_steps
+##### --scaling_lr_max_steps
   
 Number of steps (from 0) where scaling learning rate goes from `initial` to `final`. `30_000` by default.
   
-##### -rotation_lr_init
+##### --rotation_lr_init
   
 Initial rotation learning rate, `0.001` by default.
   
-##### -rotation_lr_final
+##### --rotation_lr_final
   
 Initial rotation learning rate, `0.0001` by default.
   
-##### -rotation_lr_max_steps
+##### --rotation_lr_max_steps
   
 Number of steps (from 0) where rotation learning rate goes from `initial` to `final`. `30_000` by default.
   
-##### -lambda_dssim
+##### --lambda_dssim
 
 Weight of SSIM loss. `0.25` by default.
   
-##### -lambda_tv
+##### --lambda_tv
   
 Weight of total variation loss. `0.05` by default.
   
-##### -tv_vol_size
+##### --tv_vol_size
   
 Size of tiny volume used for computing total variation. `32` by default.
   
-##### -density_min_threshold
+##### --density_min_threshold
   
 For adaptive control. Prune Gaussians with density less than this threshold. `0.00001` by default.
   
-##### -densification_interval
+##### --densification_interval
   
 How frequently to densify, `100` (every 100 iterations) by default.
   
-##### -densify_from_iter
+##### --densify_from_iter
   
 Iteration where densification starts, `500` by default.
   
-##### -densify_until_iter
+##### --densify_until_iter
   
 Iteration where densification stops, `15_000` by default.
   
-##### -densify_grad_threshold
+##### --densify_grad_threshold
   
 Limit that decides if points should be densified based on position gradient, `0.00005` by default.
   
-##### -densify_scale_threshold
+##### --densify_scale_threshold
   
 Densify Gaussians with 3D size larger than this threshold (expressed as a percentage of the volume size). `0.1` by default.
   
-##### -max_screen_size
+##### --max_screen_size
   
 Prune Gaussians with 2D screen size larger than this threshold. `None` by default.
   
-##### -max_scale
+##### --max_scale
   
 Prune Gaussians with 3D size larger than this threshold. `None` by default.
   
-##### -max_num_gaussians
+##### --max_num_gaussians
   
 Stop denstification if Gaussians are more than this threshold. `500_000` by default.
 
 #### Others
   
-##### -test_iterations
+##### --test_iterations
   
 Space-separated iterations at which the training script evaluate rendering and reconstruction performance over test set.
   
-##### -save_iterations
+##### --save_iterations
   
 Space-separated iterations at which the training script saves the Gaussian model.
   
-##### -checkpoint_iterations
+##### --checkpoint_iterations
   
 Space-separated iterations at which to store a checkpoint for continuing later, saved in the model directory.
   
-##### -start_checkpoint
+##### --start_checkpoint
   
 Path to a saved checkpoint to continue training from.
   
-##### -quiet
+##### --quiet
   
 Flag to omit any text written to standard out pipe.
   
-##### -config
+##### --config
   
 Path to `*.yml` file. If specified, overwrite other parameters.
 
@@ -313,27 +317,27 @@ python test.py -m <path to trained model>
 <details>
 <summary><span style="font-weight: bold;">Command line arguments for test.py</span></summary>
 
-##### -model_path / -m
+##### --model_path / -m
   
 Path where the trained model should be stored. ```output/<random>``` by default.
   
-##### -source_path / -s
+##### --source_path / -s
   
 Path to the source directory containing `meta_data.json` or `*.pickle`. If not set, it will be automatically loaded from the model path.
   
-##### -iterations
+##### --iterations
   
 Iterations for evaluation. `-1` (latest iteration) by default.
   
-##### -skip_render_train
+##### --skip_render_train
   
 Flag to skip rendering the training set.
   
-##### -skip_render_test
+##### --skip_render_test
   
 Flag to skip rendering the testing set.
   
-##### -skip_recon
+##### --skip_recon
   
 Flag to skip reconstructing the volume.
 
