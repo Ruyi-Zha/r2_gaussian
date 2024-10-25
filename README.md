@@ -7,7 +7,7 @@
 This repository contains the official implementation of NeurIPS 2024 paper [R<sup>2</sup>-Gaussian: Rectifying Radiative Gaussian Splatting for Tomographic Reconstruction](https://arxiv.org/abs/2405.20693). If you find this repo useful, please give it a star ⭐ and consider citing our paper.
 
 ![cover](assets/cover.png)
-![cover](assets/pipeline.png)
+![demo](assets/demo.gif)
 
 ### News
 
