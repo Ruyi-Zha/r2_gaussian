@@ -1,6 +1,6 @@
 # [NeurIPS 2024] R<sup>2</sup>-Gaussian: Rectifying Radiative Gaussian Splatting for Tomographic Reconstruction
 
-## [Arxiv](https://arxiv.org/abs/2405.20693) | [Data and models](xxx) | [Project](https://ruyi-zha.github.io/r2_gaussian/r2_gaussian.html)
+## [Arxiv](https://arxiv.org/abs/2405.20693) | [Data and models](https://drive.google.com/drive/folders/15TtHvWokkREw47qO4yKAi1T5SQKOpf7p?usp=sharing) | [Project](https://ruyi-zha.github.io/r2_gaussian/r2_gaussian.html)
 
 *Fast and direct CT reconstruction with 3D Gaussian Splatting.*
 
@@ -13,7 +13,7 @@ This repository contains the official implementation of NeurIPS 2024 paper [R<su
 
 * 2024.10.31: Code, data and models have been released. Welcome to have a try!
 * 2024.09.27: Our work has been accepted to NeurIPS 2024.
-* 2024.05.31:  Our paper is on [arxiv](https://arxiv.org/abs/2405.20693) now.
+* 2024.05.31:  Our paper is available on [arxiv](https://arxiv.org/abs/2405.20693).
 
 ## 1. Installation
 
