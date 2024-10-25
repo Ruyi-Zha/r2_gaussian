@@ -29,6 +29,7 @@ class InitParams(ParamGroup):
         self.n_points = 50000
         self.density_thresh = 0.05
         self.density_rescale = 0.15
+        self.random_density_max = 1.0  # Parameters for random mode
         super().__init__(parser, "Initialization Parameters")
 
 
@@ -37,23 +38,23 @@ def init_pcd(
     angles,
     geo,
     scanner_cfg,
-    recon_method,
-    n_points,
-    density_thresh,
-    density_rescale,
+    args: InitParams,
     save_path,
 ):
     "Initialize Gaussians."
+    recon_method = args.recon_method
+    n_points = args.n_points
     assert recon_method in ["random", "fdk"], "--recon_method not supported."
     if recon_method == "random":
         print(f"Initialize random point clouds.")
-        sampled_positions = geo.offOrigin + geo.sVoxel * (
-            np.random.rand([n_points, 3]) - 0.5
-        )
-        sampled_densities = np.random.rand(
-            [
+        sampled_positions = np.array(scanner_cfg["offOrigin"])[None, ...] + np.array(
+            scanner_cfg["sVoxel"]
+        )[None, ...] * (np.random.rand(n_points, 3) - 0.5)
+        sampled_densities = (
+            np.random.rand(
                 n_points,
-            ]
+            )
+            * args.random_density_max
         )
     else:
         # Use traditional algorithms for initialization
@@ -63,7 +64,7 @@ def init_pcd(
         vol = recon_volume(projs, angles, copy.deepcopy(geo), recon_method)
         # show_one_volume(vol)
 
-        density_mask = vol > density_thresh
+        density_mask = vol > args.density_thresh
         valid_indices = np.argwhere(density_mask)
         offOrigin = np.array(scanner_cfg["offOrigin"])
         dVoxel = np.array(scanner_cfg["dVoxel"])
@@ -82,7 +83,7 @@ def init_pcd(
             sampled_indices[:, 1],
             sampled_indices[:, 2],
         ]
-        sampled_densities = sampled_densities * density_rescale
+        sampled_densities = sampled_densities * args.density_rescale
 
     out = np.concatenate([sampled_positions, sampled_densities[:, None]], axis=-1)
     np.save(save_path, out)
@@ -119,10 +120,7 @@ def main(
         angles=angles_train,
         geo=geo,
         scanner_cfg=scanner_cfg,
-        recon_method=init_args.recon_method,
-        n_points=init_args.n_points,
-        density_thresh=init_args.density_thresh,
-        density_rescale=init_args.density_rescale,
+        args=init_args,
         save_path=save_path,
     )
 

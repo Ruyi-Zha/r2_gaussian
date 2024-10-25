@@ -26,7 +26,7 @@ def initialize_gaussian(gaussians: GaussianModel, args: ModelParams, loaded_iter
             )
         )
     else:
-        if not args.ply_path:
+        if args.ply_path == "":
             if osp.exists(osp.join(args.source_path, "meta_data.json")):
                 ply_path = osp.join(
                     args.source_path, "init_" + osp.basename(args.source_path) + ".npy"
@@ -43,7 +43,7 @@ def initialize_gaussian(gaussians: GaussianModel, args: ModelParams, loaded_iter
 
         assert osp.exists(
             ply_path
-        ), "Cannot load point cloud for initialization. Please specify a valid ply_path or generate point cloud with initialize_pcd.py."
+        ), f"Cannot find {ply_path} for initialization. Please specify a valid ply_path or generate point cloud with initialize_pcd.py."
 
         print(f"Initialize Gaussians with {osp.basename(ply_path)}")
         ply_type = ply_path.split(".")[-1]

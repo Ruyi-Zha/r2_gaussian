@@ -23,7 +23,7 @@ class ModelParams(ParamGroup):
         self._source_path = ""
         self._model_path = ""
         self.data_device = "cuda"
-        self.ply_path = None  # Path to initialization point cloud (if None, we will try to find `init_*.npy`.)
+        self.ply_path = ""  # Path to initialization point cloud (if None, we will try to find `init_*.npy`.)
         self.scale_min = 0.0005  # percent of volume size
         self.scale_max = 0.5  # percent of volume size
         self.eval = True
