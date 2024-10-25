@@ -150,7 +150,7 @@ def evaluate_volume(
 
     np.save(osp.join(save_path, "vol_gt.npy"), vol_gt.cpu().numpy())
     np.save(osp.join(save_path, "vol_pred.npy"), vol_pred.cpu().numpy())
-    print(f"{name} query complete! psnr_3d: {psnr_3d}, ssim_3d: {ssim_3d}, fps: {fps}")
+    print(f"{name} complete. psnr_3d: {psnr_3d}, ssim_3d: {ssim_3d}, fps: {fps}.")
 
 
 def evaluate_render(save_path, name, views, gaussians, pipeline):
@@ -191,7 +191,7 @@ def evaluate_render(save_path, name, views, gaussians, pipeline):
     with open(osp.join(save_path, f"eval2d_{name}.yml"), "w") as f:
         yaml.dump(eval_dict, f, default_flow_style=False, sort_keys=False)
     print(
-        f"{name} render complete. psnr_2d: {eval_dict['psnr_2d']}. ssim_2d: {eval_dict['ssim_2d']}. fps: {fps}"
+        f"{name} complete. psnr_2d: {eval_dict['psnr_2d']}, ssim_2d: {eval_dict['ssim_2d']}, fps: {fps}."
     )
 
 

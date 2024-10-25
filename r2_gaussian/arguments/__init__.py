@@ -67,7 +67,7 @@ class OptimizationParams(ParamGroup):
         self.densify_grad_threshold = 5.0e-5
         self.densify_scale_threshold = 0.1  # percent of volume size
         self.max_screen_size = None
-        self.max_scale = None  #  percent of volume size
+        self.max_scale = None  # percent of volume size
         self.max_num_gaussians = 500_000
         super().__init__(parser, "Optimization Parameters")
 

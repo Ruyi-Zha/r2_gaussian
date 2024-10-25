@@ -107,8 +107,11 @@ def main(
     save_path = args.output
     if not save_path:
         save_path = osp.join(
-            data_path, "_init" + osp.basename(data_path).split(".")[0] + ".npy"
+            data_path, "init_" + osp.basename(data_path).split(".")[0] + ".npy"
         )
+    assert not osp.exists(
+        save_path
+    ), f"Initialization file {save_path} exists! Delete it first."
     os.makedirs(osp.dirname(save_path), exist_ok=True)
 
     init_pcd(

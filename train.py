@@ -18,6 +18,7 @@ from tqdm import tqdm
 from argparse import ArgumentParser
 import numpy as np
 import yaml
+import uuid
 
 sys.path.append("./")
 from r2_gaussian.arguments import ModelParams, OptimizationParams, PipelineParams
@@ -35,13 +36,13 @@ def training(
     dataset: ModelParams,
     opt: OptimizationParams,
     pipe: PipelineParams,
+    tb_writer,
     testing_iterations,
     saving_iterations,
     checkpoint_iterations,
     checkpoint,
 ):
     first_iter = 0
-    tb_writer = prepare_output_and_logger(args)
 
     # Set up dataset
     scene = Scene(dataset, shuffle=False)
@@ -90,7 +91,7 @@ def training(
     ckpt_save_path = osp.join(scene.model_path, "ckpt")
     os.makedirs(ckpt_save_path, exist_ok=True)
     viewpoint_stack = None
-    progress_bar = tqdm(range(0, opt.iterations), desc="train", leave=False)
+    progress_bar = tqdm(range(0, opt.iterations), desc="Train", leave=False)
     progress_bar.update(first_iter)
     first_iter += 1
     for iteration in range(first_iter, opt.iterations + 1):
@@ -385,12 +386,16 @@ if __name__ == "__main__":
     # Initialize system state (RNG)
     safe_state(args.quiet)
 
+    # Load configuration files
     args_dict = vars(args)
     if args.config is not None:
         print(f"Loading configuration file from {args.config}")
         cfg = load_config(args.config)
         for key in list(cfg.keys()):
             args_dict[key] = cfg[key]
+
+    # Set up logging writer
+    tb_writer = prepare_output_and_logger(args)
 
     print("Optimizing " + args.model_path)
 
@@ -399,6 +404,7 @@ if __name__ == "__main__":
         lp.extract(args),
         op.extract(args),
         pp.extract(args),
+        tb_writer,
         args.test_iterations,
         args.save_iterations,
         args.checkpoint_iterations,

@@ -17,6 +17,7 @@ from r2_gaussian.utils.cfg_utils import args2string
 
 
 def prepare_output_and_logger(args):
+    # Update model path if not specified
     if not args.model_path:
         if os.getenv("OAR_JOB_ID"):
             unique_str = os.getenv("OAR_JOB_ID")

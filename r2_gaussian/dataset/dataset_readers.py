@@ -79,7 +79,7 @@ def readBlenderInfo(path, eval):
     train_cam_infos = cam_infos["train"]
     test_cam_infos = cam_infos["test"]
 
-    vol_gt = torch.from_numpy(np.load(osp.join(path, meta_data["vol"]))).float().cuda()
+    vol_gt = torch.from_numpy(np.load(meta_data["vol"])).float().cuda()
 
     scene_info = SceneInfo(
         train_cameras=train_cam_infos,

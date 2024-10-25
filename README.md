@@ -1,6 +1,6 @@
 # [NeurIPS 2024] R<sup>2</sup>-Gaussian: Rectifying Radiative Gaussian Splatting for Tomographic Reconstruction
 
-## [Arxiv](https://arxiv.org/abs/2405.20693) | [Data and models](https://drive.google.com/drive/folders/15TtHvWokkREw47qO4yKAi1T5SQKOpf7p?usp=sharing) | [Project](https://ruyi-zha.github.io/r2_gaussian/r2_gaussian.html)
+## [Arxiv](https://arxiv.org/abs/2405.20693) | [Data](https://drive.google.com/drive/folders/1YZ3w87XrCNyjDRos6gkY8zgT5hESl-PN?usp=sharing) | [Models](https://drive.google.com/drive/folders/1HIvO7aS2gbp7Qx3ceHiRSNoAKKS_VnjU?usp=sharing) | [Project](https://ruyi-zha.github.io/r2_gaussian/r2_gaussian.html)
 
 *Fast and direct CT reconstruction with 3D Gaussian Splatting.*
 
@@ -11,9 +11,9 @@ This repository contains the official implementation of NeurIPS 2024 paper [R<su
 
 ### News
 
-* 2024.10.31: Code, data and models have been released. Welcome to have a try!
+* 2024.10.25: Code, data and models have been released. Welcome to have a try!
 * 2024.09.27: Our work has been accepted to NeurIPS 2024.
-* 2024.05.31:  Our paper is available on [arxiv](https://arxiv.org/abs/2405.20693).
+* 2024.05.31: Our paper is available on [arxiv](https://arxiv.org/abs/2405.20693).
 
 ## 1. Installation
 
@@ -63,10 +63,11 @@ We also support [NAF](https://github.com/Ruyi-Zha/naf_cbct) format data (`*.pick
 
 We have converted our datasets to NAF format for your convenience. You can find them in [here](https://drive.google.com/drive/folders/1YZ3w87XrCNyjDRos6gkY8zgT5hESl-PN?usp=sharing).
 
-
 ## 3. Running
 
 ### 3.1 Initialization (optional)
+
+We have included initialization files in our dataset. You can skip this step if using our dataset.
 
 For new data, you need to use `initialize_pcd.py` to generate a `*.npy` file which stores the point cloud for Gaussian initialization.
 
@@ -140,7 +141,7 @@ Path where the trained model should be stored (```output/<random>``` by default)
 
 ##### -ply_path
 
-Path to initialization point cloud `*.npy`. `<path to data>/<data name>_init.npy` by default.
+Path to initialization point cloud `*.npy`. `<path to data>/init_<data name>.npy` by default.
 
 ##### -scale_min
 
@@ -238,7 +239,7 @@ Iteration where densification stops, `15_000` by default.
   
 ##### -densify_grad_threshold
   
-Limit that decides if points should be densified based on position gradient, `5.0e-5` by default.
+Limit that decides if points should be densified based on position gradient, `0.00005` by default.
   
 ##### -densify_scale_threshold
   
@@ -299,7 +300,7 @@ python scripts/train_all.py \
 
 For our synthetic dataset (`512x512` projections, `256x256x256` volume), the complete training process typically takes `5–15` minutes on an RTX 3090 GPU, with plausible results achievable in `3` minutes. The training time and model size depend on the object's structure. Sparser objects (e.g., a teapot) generally lead to faster training.
 
-If training is too slow or the number of Gaussians exceeds `200k`, consider adjusting the arguments, particularly those related to adaptive control.
+If training is too slow or there are too many Gaussians (>`200k`), consider adjusting the arguments, particularly those related to adaptive control.
 
 ### 3.3 Evaluation
 
@@ -361,7 +362,7 @@ If this repo helps you, please consider citing our work:
 @inproceedings{r2_gaussian,
   title={R$^2$-Gaussian: Rectifying Radiative Gaussian Splatting for Tomographic Reconstruction},
   author={Ruyi Zha and Tao Jun Lin and Yuanhao Cai and Jiwen Cao and Yanhao Zhang and Hongdong Li},
-  booktitle={NeurIPS},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
   year={2024}
 }
 ```
