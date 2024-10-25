@@ -1,0 +1,12 @@
+__pycache__
+build/
+*.egg-info
+.vscode/
+data/
+output
+*.zip
+TIGRE*
+volume_processed/
+volume_raw
+FIPS_raw
+FIPS_processed

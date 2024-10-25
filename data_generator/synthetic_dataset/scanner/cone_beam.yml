@@ -1,0 +1,48 @@
+# Mode
+mode: cone # X-ray source mode parallel/cone
+filter: null
+
+# System configuration
+DSD: 7.0  # Distance Source Detector
+DSO: 5.0  # Distance Source Origin
+
+# Detector parameters
+nDetector: # Number of pixels (Note: [v, u] not [u,v])
+- 512 
+- 512 
+sDetector: # Size of image (not pixel)
+- 4.0
+- 4.0
+
+# Image parameters
+nVoxel: # Number of voxels [x, y, z]
+- 256
+- 256
+- 256 
+sVoxel: # size of volume (not voxel)
+- 2.0
+- 2.0
+- 2.0
+
+# Offsets
+offOrigin: # Offset of image from origin
+- 0 # x direction
+- 0 # y direction
+- 0 # z direction
+offDetector: # Offset of Detector (only in two direction)
+- 0 # u direction
+- 0 # v direction
+
+# Auxiliary
+accuracy: 0.5 # Accuracy of FWD proj
+
+# Angles
+totalAngle: 360.0 # Total angle  (degree)
+startAngle: 0.0 # Start angle (degree)
+
+# Noise
+noise: true
+possion_noise: 10000  # lambda for possion
+gaussian_noise: # mean and std for gaussian
+- 0 # mean
+- 10 # std
