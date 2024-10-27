@@ -11,13 +11,7 @@
 
 ![cover](assets/cover.png)
 
-Visual Comparison of CT reconstruction
-
-&nbsp;
-
 ![demo](assets/demo.gif)
-
-Training Process Visualization
 
 </div>
 
