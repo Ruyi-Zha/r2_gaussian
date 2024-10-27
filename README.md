@@ -2,9 +2,11 @@
 
 <div align="center">
 
-<h2> Rectifying Radiative Gaussian Splatting for Tomographic Reconstruction </h2> 
+<p align="center"> <img src="assets/logo.png" width="250px"> </p>
 
 [Arxiv](https://arxiv.org/abs/2405.20693) | [Data](https://drive.google.com/drive/folders/1YZ3w87XrCNyjDRos6gkY8zgT5hESl-PN?usp=sharing) | [Models](https://drive.google.com/drive/folders/1HIvO7aS2gbp7Qx3ceHiRSNoAKKS_VnjU?usp=sharing) | [Project](https://ruyi-zha.github.io/r2_gaussian/r2_gaussian.html)
+
+<h2> Rectifying Radiative Gaussian Splatting for Tomographic Reconstruction </h2> 
 
 *Fast and direct CT reconstruction with 3D Gaussian Splatting.*
 
