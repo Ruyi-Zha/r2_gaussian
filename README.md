@@ -348,6 +348,8 @@ You can find all trained models [here](https://drive.google.com/drive/folders/1H
 
 ## 4. Generate your own data
 
+:exclamation: Our code support both cone beam and parallel beam configurations.
+
 If you have ground truth volumes but do not have X-ray projections, follow this [instruction](data_generator/synthetic_dataset/README.md) to generate your own dataset.
 
 If you have (more than 100) X-ray projections but do not have ground volumes, follow this [instruction](data_generator/real_dataset/README.md).
