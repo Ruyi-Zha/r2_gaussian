@@ -137,9 +137,7 @@ __device__ float4 computeCov2D(const float3& mean, float focal_x, float focal_y,
 	cov[1][1] += 0.0f;
 
 	//! Compute integration bias factor mu (Eq. 7 in our paper) 
-	//! Our mu is computed in the ray space, but there should be a scale difference between ray space and real world space.
-	//! Currently we reply on opacity (density) to compensate for the real world scale, and it works. 
-	//! Possiblely because we normalize the scene into [-1, 1]^3 unit space.
+	//! Check issue #4 regarding dicussion of ray-space and world-space scales.
 	float hata = cov[0][0];
 	float hatb = cov[0][1];
 	float hatc = cov[0][2];

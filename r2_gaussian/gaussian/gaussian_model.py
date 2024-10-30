@@ -13,11 +13,13 @@ import sys
 import torch
 from torch import nn
 import numpy as np
+import pickle
 from plyfile import PlyData, PlyElement
 
 sys.path.append("./")
 
 from simple_knn._C import distCUDA2
+from r2_gaussian.utils.general_utils import t2a
 from r2_gaussian.utils.system_utils import mkdir_p
 from r2_gaussian.utils.gaussian_utils import (
     inverse_sigmoid,
@@ -28,22 +30,28 @@ from r2_gaussian.utils.gaussian_utils import (
     build_scaling_rotation,
 )
 
+EPS = 1e-5
+
 
 class GaussianModel:
-    def setup_functions(self, scale_bound=None):
+    def setup_functions(self):
         def build_covariance_from_scaling_rotation(scaling, scaling_modifier, rotation):
             L = build_scaling_rotation(scaling_modifier * scaling, rotation)
             actual_covariance = L @ L.transpose(1, 2)
             symm = strip_symmetric(actual_covariance)
             return symm
 
-        if scale_bound is not None:
-            scale_min_bound, scale_max_bound = scale_bound
+        if self.scale_bound is not None:
+            scale_min_bound, scale_max_bound = self.scale_bound
+            assert (
+                scale_min_bound < scale_max_bound
+            ), "scale_min must be smaller than scale_max."
             self.scaling_activation = (
-                lambda x: torch.sigmoid(x) * scale_max_bound + scale_min_bound
+                lambda x: torch.sigmoid(x) * (scale_max_bound - scale_min_bound)
+                + scale_min_bound
             )
             self.scaling_inverse_activation = lambda x: inverse_sigmoid(
-                torch.relu((x - scale_min_bound) / scale_max_bound) + 1e-8
+                torch.relu((x - scale_min_bound) / (scale_max_bound - scale_min_bound))
             )
         else:
             self.scaling_activation = torch.exp
@@ -65,7 +73,8 @@ class GaussianModel:
         self.denom = torch.empty(0)
         self.optimizer = None
         self.spatial_lr_scale = 0
-        self.setup_functions(scale_bound)
+        self.scale_bound = scale_bound
+        self.setup_functions()
 
     def capture(self):
         return (
@@ -78,6 +87,7 @@ class GaussianModel:
             self.denom,
             self.optimizer.state_dict(),
             self.spatial_lr_scale,
+            self.scale_bound,
         )
 
     def restore(self, model_args, training_args):
@@ -91,11 +101,13 @@ class GaussianModel:
             denom,
             opt_dict,
             self.spatial_lr_scale,
+            self.scale_bound,
         ) = model_args
         self.training_setup(training_args)
         self.xyz_gradient_accum = xyz_gradient_accum
         self.denom = denom
         self.optimizer.load_state_dict(opt_dict)
+        self.setup_functions()  # Reset activation functions
 
     @property
     def get_scaling(self):
@@ -130,13 +142,18 @@ class GaussianModel:
         fused_density = (
             self.density_inverse_activation(torch.tensor(density)).float().cuda()
         )
-        dist2 = torch.clamp_min(
-            distCUDA2(fused_point_cloud),
-            0.001**2,
+        dist = torch.sqrt(
+            torch.clamp_min(
+                distCUDA2(fused_point_cloud),
+                0.001**2,
+            )
         )
-        scales = self.scaling_inverse_activation(torch.sqrt(dist2))[..., None].repeat(
-            1, 3
-        )
+        if self.scale_bound is not None:
+            dist = torch.clamp(
+                dist, self.scale_bound[0] + EPS, self.scale_bound[1] - EPS
+            )  # Avoid overflow
+
+        scales = self.scaling_inverse_activation(dist)[..., None].repeat(1, 3)
         rots = torch.zeros((fused_point_cloud.shape[0], 4), device="cuda")
         rots[:, 0] = 1
 
@@ -145,27 +162,6 @@ class GaussianModel:
         self._rotation = nn.Parameter(rots.requires_grad_(True))
         self._density = nn.Parameter(fused_density.requires_grad_(True))
         self.max_radii2D = torch.zeros((self.get_xyz.shape[0]), device="cuda")
-
-        if False:  # Generate one gaussian for debugging
-            print("Initialize one gaussian")
-            fused_xyz = (
-                torch.tensor([[0.0, 0.0, 0.0]]).float().cuda()
-            )  # position: [0,0,0]
-            fused_density = self.density_inverse_activation(
-                torch.tensor([[0.8]]).float().cuda()
-            )  # density: 0.8
-            scales = self.scaling_inverse_activation(
-                torch.tensor([[0.5, 0.5, 0.5]]).float().cuda()
-            )  # scale: 0.5
-            rots = (
-                torch.tensor([[1.0, 0.0, 0.0, 0.0]]).float().cuda()
-            )  # quaternion: [1, 0, 0, 0]
-            # rots = torch.tensor([[0.966, -0.259, 0, 0]]).float().cuda()
-            self._xyz = nn.Parameter(fused_xyz.requires_grad_(True))
-            self._scaling = nn.Parameter(scales.requires_grad_(True))
-            self._rotation = nn.Parameter(rots.requires_grad_(True))
-            self._density = nn.Parameter(fused_density.requires_grad_(True))
-            self.max_radii2D = torch.zeros((self.get_xyz.shape[0]), device="cuda")
 
     def training_setup(self, training_args):
         self.xyz_gradient_accum = torch.zeros((self.get_xyz.shape[0], 1), device="cuda")
@@ -243,23 +239,24 @@ class GaussianModel:
         return l
 
     def save_ply(self, path):
+        # We save pickle files to store more information
+
         mkdir_p(os.path.dirname(path))
 
-        xyz = self._xyz.detach().cpu().numpy()
-        normals = np.zeros_like(xyz)
-        densities = self._density.detach().cpu().numpy()
-        scale = self._scaling.detach().cpu().numpy()
-        rotation = self._rotation.detach().cpu().numpy()
+        xyz = t2a(self._xyz)
+        densities = t2a(self._density)
+        scale = t2a(self._scaling)
+        rotation = t2a(self._rotation)
 
-        dtype_full = [
-            (attribute, "f4") for attribute in self.construct_list_of_attributes()
-        ]
-
-        elements = np.empty(xyz.shape[0], dtype=dtype_full)
-        attributes = np.concatenate((xyz, normals, densities, scale, rotation), axis=1)
-        elements[:] = list(map(tuple, attributes))
-        el = PlyElement.describe(elements, "vertex")
-        PlyData([el]).write(path)
+        out = {
+            "xyz": xyz,
+            "density": densities,
+            "scale": scale,
+            "rotation": rotation,
+            "scale_bound": self.scale_bound,
+        }
+        with open(path, "wb") as f:
+            pickle.dump(out, f, pickle.HIGHEST_PROTOCOL)
 
     def reset_density(self, reset_density=1.0):
         densities_new = self.density_inverse_activation(
@@ -271,50 +268,32 @@ class GaussianModel:
         self._density = optimizable_tensors["density"]
 
     def load_ply(self, path):
-        plydata = PlyData.read(path)
-
-        xyz = np.stack(
-            (
-                np.asarray(plydata.elements[0]["x"]),
-                np.asarray(plydata.elements[0]["y"]),
-                np.asarray(plydata.elements[0]["z"]),
-            ),
-            axis=1,
-        )
-        densities = np.asarray(plydata.elements[0]["density"])[..., np.newaxis]
-
-        scale_names = [
-            p.name
-            for p in plydata.elements[0].properties
-            if p.name.startswith("scale_")
-        ]
-        scale_names = sorted(scale_names, key=lambda x: int(x.split("_")[-1]))
-        scales = np.zeros((xyz.shape[0], len(scale_names)))
-        for idx, attr_name in enumerate(scale_names):
-            scales[:, idx] = np.asarray(plydata.elements[0][attr_name])
-
-        rot_names = [
-            p.name for p in plydata.elements[0].properties if p.name.startswith("rot")
-        ]
-        rot_names = sorted(rot_names, key=lambda x: int(x.split("_")[-1]))
-        rots = np.zeros((xyz.shape[0], len(rot_names)))
-        for idx, attr_name in enumerate(rot_names):
-            rots[:, idx] = np.asarray(plydata.elements[0][attr_name])
+        # We load pickle file.
+        with open(path, "rb") as f:
+            data = pickle.load(f)
 
         self._xyz = nn.Parameter(
-            torch.tensor(xyz, dtype=torch.float, device="cuda").requires_grad_(True)
-        )
-        self._density = nn.Parameter(
-            torch.tensor(densities, dtype=torch.float, device="cuda").requires_grad_(
+            torch.tensor(data["xyz"], dtype=torch.float, device="cuda").requires_grad_(
                 True
             )
         )
+        self._density = nn.Parameter(
+            torch.tensor(
+                data["density"], dtype=torch.float, device="cuda"
+            ).requires_grad_(True)
+        )
         self._scaling = nn.Parameter(
-            torch.tensor(scales, dtype=torch.float, device="cuda").requires_grad_(True)
+            torch.tensor(
+                data["scale"], dtype=torch.float, device="cuda"
+            ).requires_grad_(True)
         )
         self._rotation = nn.Parameter(
-            torch.tensor(rots, dtype=torch.float, device="cuda").requires_grad_(True)
+            torch.tensor(
+                data["rotation"], dtype=torch.float, device="cuda"
+            ).requires_grad_(True)
         )
+        self.scale_bound = data["scale_bound"]
+        self.setup_functions()  # Reset activation functions
 
     def replace_tensor_to_optimizer(self, tensor, name):
         optimizable_tensors = {}

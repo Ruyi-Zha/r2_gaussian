@@ -16,15 +16,15 @@ def initialize_gaussian(gaussians: GaussianModel, args: ModelParams, loaded_iter
             loaded_iter = searchForMaxIteration(
                 osp.join(args.model_path, "point_cloud")
             )
-        print("Loading trained model at iteration {}".format(loaded_iter))
-        gaussians.load_ply(
-            os.path.join(
-                args.model_path,
-                "point_cloud",
-                "iteration_" + str(loaded_iter),
-                "point_cloud.ply",
-            )
+        ply_path = os.path.join(
+            args.model_path,
+            "point_cloud",
+            "iteration_" + str(loaded_iter),
+            "point_cloud.pickle",  # Pickle rather than ply
         )
+        assert osp.exists(ply_path), f"Cannot find {ply_path} for loading."
+        gaussians.load_ply(ply_path)
+        print("Loading trained model at iteration {}".format(loaded_iter))
     else:
         if args.ply_path == "":
             if osp.exists(osp.join(args.source_path, "meta_data.json")):
@@ -37,7 +37,7 @@ def initialize_gaussian(gaussians: GaussianModel, args: ModelParams, loaded_iter
                     "init_" + osp.basename(args.source_path).split(".")[0] + ".npy",
                 )
             else:
-                assert False, "Could not recognize scene type!"
+                raise ValueError("Could not recognize scene type!")
         else:
             ply_path = args.ply_path
 

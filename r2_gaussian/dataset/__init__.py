@@ -82,7 +82,9 @@ class Scene:
         point_cloud_path = osp.join(
             self.model_path, "point_cloud/iteration_{}".format(iteration)
         )
-        self.gaussians.save_ply(osp.join(point_cloud_path, "point_cloud.ply"))
+        self.gaussians.save_ply(
+            osp.join(point_cloud_path, "point_cloud.pickle")
+        )  # Save pickle rather than ply
         if queryfunc is not None:
             vol_pred = queryfunc(self.gaussians)["vol"]
             vol_gt = self.vol_gt

@@ -76,6 +76,7 @@ def training(
     if checkpoint is not None:
         (model_params, first_iter) = torch.load(checkpoint)
         gaussians.restore(model_params, opt)
+        print(f"Load checkpoint {osp.basename(checkpoint)}.")
 
     # Set up loss
     use_tv = opt.lambda_tv > 0
@@ -372,7 +373,7 @@ if __name__ == "__main__":
     op = OptimizationParams(parser)
     pp = PipelineParams(parser)
     parser.add_argument("--detect_anomaly", action="store_true", default=False)
-    parser.add_argument("--test_iterations", nargs="+", type=int, default=[5_000, 10_000, 20_000, 30_000])
+    parser.add_argument("--test_iterations", nargs="+", type=int, default=[5_000, 10_000, 20_000])
     parser.add_argument("--save_iterations", nargs="+", type=int, default=[])
     parser.add_argument("--quiet", action="store_true")
     parser.add_argument("--checkpoint_iterations", nargs="+", type=int, default=[])
@@ -380,6 +381,7 @@ if __name__ == "__main__":
     parser.add_argument("--config", type=str, default=None)
     args = parser.parse_args(sys.argv[1:])
     args.save_iterations.append(args.iterations)
+    args.test_iterations.append(args.iterations)
     args.test_iterations.append(1)
     # fmt: on
 

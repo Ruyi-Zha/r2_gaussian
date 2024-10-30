@@ -46,20 +46,13 @@ def testing(
     skip_recon: bool,
 ):
     # Set up dataset
-
     scene = Scene(
         dataset,
         shuffle=False,
     )
 
-    # Set up some parameters
-    volume_to_world = min(scene.scanner_cfg["sVoxel"])
-    scale_bound = None
-    if dataset.scale_min and dataset.scale_max:
-        scale_bound = np.array([dataset.scale_min, dataset.scale_max]) * volume_to_world
-
     # Set up Gaussians
-    gaussians = GaussianModel(scale_bound)
+    gaussians = GaussianModel(None)  # scale_bound will be loaded later
     loaded_iter = initialize_gaussian(gaussians, dataset, iteration)
     scene.gaussians = gaussians
 
