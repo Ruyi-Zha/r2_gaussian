@@ -21,7 +21,7 @@ def show_gaussians(
     mesh_resoltuion=3,
 ):
     """Visualize gaussians for debugging."""
-    g_density = t2a(gaussians.get_density).numpy()[:, 0]
+    g_density = t2a(gaussians.get_density)[:, 0]
     indices = g_density != 0
     g_density = g_density[indices]
     g_center = t2a(gaussians.get_xyz)[indices]
