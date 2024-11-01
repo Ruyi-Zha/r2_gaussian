@@ -107,9 +107,16 @@ def main(
 
     save_path = args.output
     if not save_path:
-        save_path = osp.join(
-            data_path, "init_" + osp.basename(data_path).split(".")[0] + ".npy"
-        )
+        if osp.exists(osp.join(data_path, "meta_data.json")):
+            save_path = osp.join(data_path, "init_" + osp.basename(data_path) + ".npy")
+        elif data_path.split(".")[-1] in ["pickle", "pkl"]:
+            save_path = osp.join(
+                osp.dirname(data_path),
+                "init_" + osp.basename(data_path).split(".")[0] + ".npy",
+            )
+        else:
+            assert False, f"Could not recognize scene type: {args.source_path}."
+
     assert not osp.exists(
         save_path
     ), f"Initialization file {save_path} exists! Delete it first."
