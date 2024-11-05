@@ -11,11 +11,9 @@
 import os
 import sys
 import random
-import json
 import numpy as np
 import os.path as osp
 import torch
-import pickle
 
 sys.path.append("./")
 from r2_gaussian.gaussian import GaussianModel

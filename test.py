@@ -13,27 +13,25 @@ import os
 import os.path as osp
 import sys
 import torch
-from tqdm import tqdm
+from tqdm import tqdm, trange
 import torchvision
 from time import time
 import numpy as np
 import concurrent.futures
 import yaml
-import json
-import matplotlib.cm as cm
-from argparse import ArgumentParser, Namespace
-
+from argparse import ArgumentParser
+from random import randint
+import SimpleITK as sitk
 
 sys.path.append("./")
 from r2_gaussian.arguments import (
     ModelParams,
     PipelineParams,
-    OptimizationParams,
     get_combined_args,
 )
 from r2_gaussian.dataset import Scene
 from r2_gaussian.gaussian import GaussianModel, render, query, initialize_gaussian
-from r2_gaussian.utils.general_utils import safe_state
+from r2_gaussian.utils.general_utils import safe_state, t2a
 from r2_gaussian.utils.image_utils import metric_vol, metric_proj
 
 
@@ -104,7 +102,6 @@ def evaluate_volume(
     slice_save_path = osp.join(save_path, name)
     os.makedirs(slice_save_path, exist_ok=True)
 
-    start_time = time()
     query_pkg = query(
         gaussians,
         scanner_cfg["offOrigin"],
@@ -112,7 +109,6 @@ def evaluate_volume(
         scanner_cfg["sVoxel"],
         pipeline,
     )
-    duration = time() - start_time
     vol_pred = query_pkg["vol"]
 
     psnr_3d, _ = metric_vol(vol_gt, vol_pred, "psnr")
@@ -128,22 +124,30 @@ def evaluate_volume(
         slice_save_path,
         "_pred",
     )
-    fps = 1 / duration
     eval_dict = {
         "psnr_3d": psnr_3d,
         "ssim_3d": ssim_3d,
         "ssim_3d_x": ssim_3d_axis[0],
         "ssim_3d_y": ssim_3d_axis[1],
         "ssim_3d_z": ssim_3d_axis[2],
-        "FPS": fps,
     }
 
     with open(osp.join(save_path, "eval3d.yml"), "w") as f:
         yaml.dump(eval_dict, f, default_flow_style=False, sort_keys=False)
 
-    np.save(osp.join(save_path, "vol_gt.npy"), vol_gt.cpu().numpy())
-    np.save(osp.join(save_path, "vol_pred.npy"), vol_pred.cpu().numpy())
-    print(f"{name} complete. psnr_3d: {psnr_3d}, ssim_3d: {ssim_3d}, fps: {fps}.")
+    np.save(osp.join(save_path, "vol_gt.npy"), t2a(vol_gt))
+    np.save(osp.join(save_path, "vol_pred.npy"), t2a(vol_pred))
+    # For visualization with 3D slicer
+    sitk.WriteImage(
+        sitk.GetImageFromArray(t2a(vol_gt).transpose(2, 0, 1)),
+        os.path.join(save_path, "vol_gt.nii.gz"),
+    )
+    sitk.WriteImage(
+        sitk.GetImageFromArray(t2a(vol_pred).transpose(2, 0, 1)),
+        os.path.join(save_path, "vol_pred.nii.gz"),
+    )
+
+    print(f"{name} complete. psnr_3d: {psnr_3d}, ssim_3d: {ssim_3d}")
 
 
 def evaluate_render(save_path, name, views, gaussians, pipeline):
@@ -158,15 +162,11 @@ def evaluate_render(save_path, name, views, gaussians, pipeline):
 
     gt_list = []
     render_list = []
-    time1 = time()
     for view in tqdm(views, desc="render {}".format(name), leave=False):
         rendering = render(view, gaussians, pipeline)["render"]
         gt = view.original_image[0:3, :, :]
         gt_list.append(gt)
         render_list.append(rendering)
-
-    time2 = time()
-    fps = (len(views) - 1) / (time2 - time1)
     multithread_write(gt_list, proj_save_path, "_gt")
     multithread_write(render_list, proj_save_path, "_pred")
 
@@ -179,12 +179,11 @@ def evaluate_render(save_path, name, views, gaussians, pipeline):
         "ssim_2d": ssim_2d,
         "psnr_2d_projs": psnr_2d_projs,
         "ssim_2d_projs": ssim_2d_projs,
-        "fps": fps,
     }
     with open(osp.join(save_path, f"eval2d_{name}.yml"), "w") as f:
         yaml.dump(eval_dict, f, default_flow_style=False, sort_keys=False)
     print(
-        f"{name} complete. psnr_2d: {eval_dict['psnr_2d']}, ssim_2d: {eval_dict['ssim_2d']}, fps: {fps}."
+        f"{name} complete. psnr_2d: {eval_dict['psnr_2d']}, ssim_2d: {eval_dict['ssim_2d']}."
     )
 
 

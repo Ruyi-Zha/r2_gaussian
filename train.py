@@ -18,7 +18,6 @@ from tqdm import tqdm
 from argparse import ArgumentParser
 import numpy as np
 import yaml
-import uuid
 
 sys.path.append("./")
 from r2_gaussian.arguments import ModelParams, OptimizationParams, PipelineParams
@@ -327,7 +326,6 @@ def training_report(
         }
         with open(osp.join(eval_save_path, "eval3d.yml"), "w") as f:
             yaml.dump(eval_dict, f, default_flow_style=False, sort_keys=False)
-        # np.save(osp.join(eval_save_path, "vol_pred.npy"), vol_gt.cpu().numpy())
         if tb_writer:
             image_show_3d = np.concatenate(
                 [
