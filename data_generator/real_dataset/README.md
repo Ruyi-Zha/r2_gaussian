@@ -2,7 +2,9 @@
 
 ![gt_demo](../../assets/real_dataset.png)
 
-Here we describe the data processing steps for real dataset (real X-ray projection, pseudo-GT volume).
+Here we describe the data processing steps for FIPS dataset (real X-ray projection, pseudo-GT volume).
+
+You can follow similar ideas to generate your own dataset.
 
 ## Download raw data
 
@@ -34,7 +36,10 @@ We use three cases from [FIPS](https://fips.fi/category/open-datasets/x-ray-tomo
 | Pine     | [FIPS](https://fips.fi/open-datasets/x-ray-tomographic-datasets/3d-cone-beam-computed-tomography-dataset-of-a-pine-cone/) | Download all `*_.zip` files and `*.text` configuration file.                                   |
 | Seashell     | [FIPS](https://fips.fi/open-datasets/x-ray-tomographic-datasets/3d-cone-beam-computed-tomography-dataset-of-a-seashell/) | Download all `*_.zip` files and `*.text` configuration file.                                      |
 | Walnut     | [FIPS](https://fips.fi/open-datasets/x-ray-tomographic-datasets/3d-cone-beam-computed-tomography-dataset-of-a-walnut/) | Download all `*_.zip` files and `*.text` configuration file.  |
+
 ## Extract X-ray projections from raw data
+
+*For FIPS dataset only.*
 
 Use [HelTomo Matlab Toolbox](https://github.com/Diagonalizable/HelTomo) to extract X-ray projections from raw data. You can install HelTomo Toolbox via Matlab Add-on Explorer or locally.
 
