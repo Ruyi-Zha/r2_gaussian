@@ -24,6 +24,7 @@ dependencies:
     - imagecodecs
     - pyvista
     - SimpleITK
+    - scikit-image
     - Cython==0.29.36
     - open3d==0.18.0
     - -e r2_gaussian/submodules/simple-knn

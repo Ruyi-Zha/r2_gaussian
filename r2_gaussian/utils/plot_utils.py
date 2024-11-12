@@ -8,6 +8,8 @@ from scipy.spatial.transform import Rotation
 from tqdm import trange
 import open3d as o3d
 import sys
+from skimage import measure
+import cv2
 
 sys.path.append("./")
 from r2_gaussian.utils.general_utils import t2a
@@ -443,3 +445,99 @@ def show_two_volume(
 
     # Show the plot
     plt.show()
+
+
+def create_textured_camera(
+    K, w2c, scale, camera_color, width, height, id=None, image=None
+):
+    # Create a line set
+    cam = o3d.geometry.LineSet.create_camera_visualization(
+        view_width_px=width,
+        view_height_px=height,
+        intrinsic=K,
+        extrinsic=w2c,
+        scale=scale,
+    )
+    cam.paint_uniform_color(camera_color)
+
+    c2w = np.linalg.inv(w2c)
+    coord = o3d.geometry.TriangleMesh.create_coordinate_frame(
+        size=1 / 12 * scale, origin=[0, 0, 0]
+    )
+    coord.transform(c2w)
+
+    output = [cam, coord]
+
+    if id is not None:
+        id_mesh = o3d.t.geometry.TriangleMesh.create_text(id, depth=0.1).to_legacy()
+        id_mesh.paint_uniform_color(camera_color)
+        id_mesh.scale(scale=1 / 300 * scale, center=np.zeros([3, 1]))
+        id_mesh.rotate(
+            np.array([[-1, 0, 0], [0, -1, 0], [0, 0, 1]])
+            @ np.array([[-1, 0, 0], [0, 1, 0], [0, 0, 1]])
+        )
+        id_mesh.transform(c2w)
+        output.append(id_mesh)
+
+    if image is not None:
+        image = (image / np.max(image) * 255).astype(np.uint8)
+        cx = K[0, 2]
+        cy = K[1, 2]
+        fx = K[0, 0]
+        fy = K[1, 1]
+        img_mesh = o3d.geometry.TriangleMesh()
+        vertices = np.array(
+            [
+                [-cx / fx, (height - cy) / fy, 1],
+                [(width - cx) / fx, (height - cy) / fy, 1],
+                [(width - cx) / fx, -cy / fy, 1],
+                [-cx / fx, -cy / fy, 1],
+            ],
+            dtype=np.float64,
+        )
+        triangles = np.array(
+            [
+                [0, 1, 2],
+                [2, 3, 0],
+            ],
+            dtype=np.int32,
+        )
+        uvs = np.array([[0, 1], [1, 1], [1, 0], [0, 0]], dtype=np.float64)
+        img_mesh.vertices = o3d.utility.Vector3dVector(vertices)
+        img_mesh.triangles = o3d.utility.Vector3iVector(triangles)
+        img_mesh.triangle_uvs = o3d.utility.Vector2dVector(uvs[triangles.flatten()])
+        img_mesh.triangle_material_ids = o3d.utility.IntVector([0, 0])
+
+        # Set the texture image
+        texture = o3d.geometry.Image(cv2.cvtColor(image, cv2.COLOR_GRAY2RGB))
+        img_mesh.textures = [texture]
+
+        img_mesh.scale(scale=scale, center=np.zeros([3, 1]))
+        img_mesh.transform(c2w)
+        output.append(img_mesh)
+
+    return output
+
+
+def create_vol_mesh(ct_array, origin, spacing, direction=np.eye(3), level=0.5):
+    origin = np.array(origin)
+    spacing = np.array(spacing)
+    # Extract an isosurface using the marching cubes algorithm
+    # Use level appropriate for your CT data; adjust if necessary
+    verts, faces, normals, values = measure.marching_cubes(ct_array, level=level)
+
+    # Scale indices by spacing
+    indices_scaled = verts * spacing
+
+    # Apply the direction matrix
+    physical_coords = (
+        np.dot(indices_scaled, direction.T) + origin - ct_array.shape * spacing / 2
+    )
+
+    # Create an Open3D mesh from the transformed vertices and faces
+    mesh = o3d.geometry.TriangleMesh()
+    mesh.vertices = o3d.utility.Vector3dVector(physical_coords)
+    mesh.triangles = o3d.utility.Vector3iVector(faces)
+    mesh.compute_vertex_normals()
+    mesh.paint_uniform_color([0.7, 0.7, 0.7])  # Set mesh color to light gray
+    return mesh

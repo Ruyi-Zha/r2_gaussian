@@ -57,7 +57,7 @@ def training(
         else None
     )
     scale_bound = None
-    if dataset.scale_min and dataset.scale_max:
+    if dataset.scale_min > 0 and dataset.scale_max > 0:
         scale_bound = np.array([dataset.scale_min, dataset.scale_max]) * volume_to_world
     queryfunc = lambda x: query(
         x,
@@ -272,8 +272,8 @@ def training_report(
                                     image[0],
                                     f"{viewpoint.image_name} gt",
                                     f"{viewpoint.image_name} render",
-                                    vmin=None,
-                                    vmax=None,
+                                    vmin=gt_image[0].min() if iteration != 1 else None,
+                                    vmax=gt_image[0].max() if iteration != 1 else None,
                                     save=True,
                                 )
                             )

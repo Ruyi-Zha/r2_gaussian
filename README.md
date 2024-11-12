@@ -75,6 +75,9 @@ You can download datasets (synthetic and real) used in our paper [here](https://
 │   │   └──...
 ```
 
+You can visually check the scene with `python scripts/visualize_scene.py -s <path to data>`. Thanks @MrMonk3y for providing code.
+![cover](assets/scene.png)
+
 We also support [NAF](https://github.com/Ruyi-Zha/naf_cbct) format data (`*.pickle`) used in [SAX-NeRF](https://github.com/caiyuanhao1998/SAX-NeRF).
 
 We have converted our datasets to NAF format for your convenience. You can find them in [here](https://drive.google.com/drive/folders/1YZ3w87XrCNyjDRos6gkY8zgT5hESl-PN?usp=sharing).
