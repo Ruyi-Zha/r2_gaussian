@@ -26,7 +26,8 @@ def recon_volume(projs, angles, geo, recon_method):
     return vol
 
 
-def get_geometry(cfg):
+def get_geometry_tigre(cfg):
+    """For TIGRE only."""
     if cfg["mode"] == "parallel":
         geo = tigre.geometry(mode="parallel", nVoxel=np.array(cfg["nVoxel"][::-1]))
     elif cfg["mode"] == "cone":

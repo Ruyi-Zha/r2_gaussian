@@ -14,7 +14,7 @@ import json
 random.seed(0)
 
 sys.path.append("./")
-from r2_gaussian.utils.ct_utils import get_geometry
+from r2_gaussian.utils.ct_utils import get_geometry_tigre
 
 
 def main(args):
@@ -156,7 +156,7 @@ def main(args):
             projs.append(proj)
         projs = np.stack(projs, axis=0)
         print("reconstruct with FDK")
-        geo = get_geometry(scanner_cfg)
+        geo = get_geometry_tigre(scanner_cfg)
         ct_gt = algs.fdk(projs[:, ::-1, :], geo, angles[::skip])
         ct_gt = ct_gt.transpose((2, 1, 0))
         ct_gt[ct_gt < 0] = 0

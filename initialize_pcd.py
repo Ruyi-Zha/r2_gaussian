@@ -12,7 +12,7 @@ import copy
 import torch
 
 sys.path.append("./")
-from r2_gaussian.utils.ct_utils import get_geometry, recon_volume
+from r2_gaussian.utils.ct_utils import get_geometry_tigre, recon_volume
 from r2_gaussian.arguments import ParamGroup, ModelParams, PipelineParams
 from r2_gaussian.utils.plot_utils import show_one_volume, show_two_volume
 from r2_gaussian.gaussian import GaussianModel, query, initialize_gaussian
@@ -103,7 +103,7 @@ def main(
     )
     angles_train = np.stack([t2a(cam.angle) for cam in train_cameras], axis=0)
     scanner_cfg = scene.scanner_cfg
-    geo = get_geometry(scanner_cfg)
+    geo = get_geometry_tigre(scanner_cfg)
 
     save_path = args.output
     if not save_path:

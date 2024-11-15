@@ -20,7 +20,7 @@ import copy
 import sys
 
 sys.path.append("./")
-from r2_gaussian.utils.ct_utils import get_geometry, recon_volume
+from r2_gaussian.utils.ct_utils import get_geometry_tigre, recon_volume
 
 
 def main(args):
@@ -38,7 +38,7 @@ def main(args):
 
     case_name = f"{vol_name}_{scanner_cfg['mode']}"
     print(f"Generate data for case {case_name}")
-    geo = get_geometry(scanner_cfg)
+    geo = get_geometry_tigre(scanner_cfg)
 
     # Load volume
     vol = np.load(vol_path).astype(np.float32)
