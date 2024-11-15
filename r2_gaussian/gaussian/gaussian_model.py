@@ -163,6 +163,28 @@ class GaussianModel:
         self._density = nn.Parameter(fused_density.requires_grad_(True))
         self.max_radii2D = torch.zeros((self.get_xyz.shape[0]), device="cuda")
 
+        #! Generate one gaussian for debugging purpose
+        if False:
+            print("Initialize one gaussian")
+            fused_xyz = (
+                torch.tensor([[0.0, 0.0, 0.0]]).float().cuda()
+            )  # position: [0,0,0]
+            fused_density = self.density_inverse_activation(
+                torch.tensor([[0.8]]).float().cuda()
+            )  # density: 0.8
+            scales = self.scaling_inverse_activation(
+                torch.tensor([[0.5, 0.5, 0.5]]).float().cuda()
+            )  # scale: 0.5
+            rots = (
+                torch.tensor([[1.0, 0.0, 0.0, 0.0]]).float().cuda()
+            )  # quaternion: [1, 0, 0, 0]
+            # rots = torch.tensor([[0.966, -0.259, 0, 0]]).float().cuda()
+            self._xyz = nn.Parameter(fused_xyz.requires_grad_(True))
+            self._scaling = nn.Parameter(scales.requires_grad_(True))
+            self._rotation = nn.Parameter(rots.requires_grad_(True))
+            self._density = nn.Parameter(fused_density.requires_grad_(True))
+            self.max_radii2D = torch.zeros((self.get_xyz.shape[0]), device="cuda")
+
     def training_setup(self, training_args):
         self.xyz_gradient_accum = torch.zeros((self.get_xyz.shape[0], 1), device="cuda")
         self.denom = torch.zeros((self.get_xyz.shape[0], 1), device="cuda")
