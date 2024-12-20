@@ -13,8 +13,8 @@
  * 
  */
 
-#ifndef cuda_voxelizer_AUXILIARY_H_INCLUDED
-#define cuda_voxelizer_AUXILIARY_H_INCLUDED
+#ifndef CUDA_VOXELIZER_AUXILIARY_H_INCLUDED
+#define CUDA_VOXELIZER_AUXILIARY_H_INCLUDED
 
 #include "config.h"
 #include "stdio.h"
@@ -23,28 +23,18 @@
 #define NUM_WARPS3D (BLOCK_SIZE3D/32)
 
 
-// struct float7 {
-//     float a, b, c, d, e, f, o;
 
-//     // Default constructor
-//     __host__ __device__ float7() : a(0), b(0), c(0), d(0), e(0), f(0), o(0) {}
-
-//     // Parameterized constructor
-//     __host__ __device__ float7(float a, float b, float c, float d, float e, float f, float o) 
-//     : a(a), b(b), c(c), d(d), e(e), f(f), o(o) {}
-// };
-
-__forceinline__ __device__ void getCube(const float3 p, int max_radius, uint3& cube_min, uint3& cube_max, dim3 grid)
+__forceinline__ __device__ void getCube(const float3 p, float3 max_radius, uint3& cube_min, uint3& cube_max, dim3 grid)
 {
 	cube_min = {
-		min(grid.x, max((int)0, (int)((p.x - max_radius) / BLOCK3D_X))),
-		min(grid.y, max((int)0, (int)((p.y - max_radius) / BLOCK3D_Y))),
-		min(grid.z, max((int)0, (int)((p.z - max_radius) / BLOCK3D_Z)))
+		min(grid.x, max((int)0, (int)((p.x - max_radius.x) / BLOCK3D_X))),
+		min(grid.y, max((int)0, (int)((p.y - max_radius.y) / BLOCK3D_Y))),
+		min(grid.z, max((int)0, (int)((p.z - max_radius.z) / BLOCK3D_Z)))
 	};
 	cube_max = {
-		min(grid.x, max((int)0, (int)((p.x + max_radius + BLOCK3D_X - 1) / BLOCK3D_X))),
-		min(grid.y, max((int)0, (int)((p.y + max_radius + BLOCK3D_Y - 1) / BLOCK3D_Y))),
-		min(grid.z, max((int)0, (int)((p.z + max_radius + BLOCK3D_Z - 1) / BLOCK3D_Z)))
+		min(grid.x, max((int)0, (int)((p.x + max_radius.x + BLOCK3D_X - 1) / BLOCK3D_X))),
+		min(grid.y, max((int)0, (int)((p.y + max_radius.y + BLOCK3D_Y - 1) / BLOCK3D_Y))),
+		min(grid.z, max((int)0, (int)((p.z + max_radius.z + BLOCK3D_Z - 1) / BLOCK3D_Z)))
 	};
 }
 

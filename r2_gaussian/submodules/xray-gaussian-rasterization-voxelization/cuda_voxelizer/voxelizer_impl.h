@@ -32,7 +32,9 @@ namespace CudaVoxelizer
 		size_t scan_size;
 		float* depths;
 		char* scanning_space;
-		int* internal_radii;
+		int* internal_radii_x;
+		int* internal_radii_y;
+		int* internal_radii_z;
 		float3* means3D_norm;
 		float* cov3D;
 		float* conic_opacity;

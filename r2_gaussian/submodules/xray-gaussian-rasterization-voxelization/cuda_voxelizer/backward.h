@@ -9,8 +9,8 @@
  * For inquiries contact  george.drettakis@inria.fr
  */
 
-#ifndef cuda_voxelizer_BACKWARD_H_INCLUDED
-#define cuda_voxelizer_BACKWARD_H_INCLUDED
+#ifndef CUDA_VOXELIZER_BACKWARD_H_INCLUDED
+#define CUDA_VOXELIZER_BACKWARD_H_INCLUDED
 
 #include <cuda.h>
 #include "cuda_runtime.h"
@@ -38,7 +38,7 @@ namespace BACKWARD
 	void preprocess(
 		int P,
 		const float3* means,
-		const int* radii,
+		const int* radii_x, const int* radii_y, const int* radii_z,
 		const glm::vec3* scales,
 		const glm::vec4* rotations,
 		const float scale_modifier,

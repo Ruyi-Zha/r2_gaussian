@@ -9,8 +9,8 @@
  * For inquiries contact  george.drettakis@inria.fr
  */
 
-#ifndef cuda_voxelizer_FORWARD_H_INCLUDED
-#define cuda_voxelizer_FORWARD_H_INCLUDED
+#ifndef CUDA_VOXELIZER_FORWARD_H_INCLUDED
+#define CUDA_VOXELIZER_FORWARD_H_INCLUDED
 
 #include <cuda.h>
 #include "cuda_runtime.h"
@@ -31,7 +31,7 @@ namespace FORWARD
 		const int nVoxel_x, int nVoxel_y, int nVoxel_z,
 		const float sVoxel_x, float sVoxel_y, float sVoxel_z,
 		const float center_x, float center_y, float center_z,
-		int* radii,
+		int* radii_x, int* radii_y, int* radii_z,
 		float3* means3D_norm,
 		float* depths,
 		float* cov3Ds,

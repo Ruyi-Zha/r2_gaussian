@@ -22,15 +22,8 @@
 #include "cuda_rasterizer/rasterizer.h"
 #include <fstream>
 #include <string>
-#include <functional>
+#include "utility.h"
 
-std::function<char*(size_t N)> resizeFunctional(torch::Tensor& t) {
-    auto lambda = [&t](size_t N) {
-        t.resize_({(long long)N});
-		return reinterpret_cast<char*>(t.contiguous().data_ptr());
-    };
-    return lambda;
-}
 
 std::tuple<int, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor>
 RasterizeGaussiansCUDA(

@@ -15,7 +15,7 @@
 #include <tuple>
 #include <string>
 
-std::tuple<int, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor>
+std::tuple<int, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor>
 VoxelizeGaussiansCUDA(
 	const torch::Tensor& means3D,
     const torch::Tensor& opacity,
@@ -38,7 +38,9 @@ VoxelizeGaussiansCUDA(
 std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor>
 VoxelizeGaussiansBackwardCUDA(
 	const torch::Tensor& means3D,
-	const torch::Tensor& radii,
+	const torch::Tensor& radii_x,
+	const torch::Tensor& radii_y,
+	const torch::Tensor& radii_z,
 	const torch::Tensor& scales,
 	const torch::Tensor& rotations,
 	const float scale_modifier,

@@ -18,7 +18,7 @@ namespace cg = cooperative_groups;
 
 // Backward pass for the conversion of scale and rotation to a 
 // 3D covariance matrix for each Gaussian. 
-__device__ void computeCov3D2(int idx, const glm::vec3 scale, float mod, const glm::vec4 rot, const float* dL_dcov3Ds, glm::vec3* dL_dscales, glm::vec4* dL_drots)
+static __device__ void computeCov3D(int idx, const glm::vec3 scale, float mod, const glm::vec4 rot, const float* dL_dcov3Ds, glm::vec3* dL_dscales, glm::vec4* dL_drots)
 {
 	// Recompute (intermediate) results for the 3D covariance computation.
 	glm::vec4 q = rot;// / glm::length(rot);
@@ -83,9 +83,9 @@ __device__ void computeCov3D2(int idx, const glm::vec3 scale, float mod, const g
 	*dL_drot = float4{ dL_dq.x, dL_dq.y, dL_dq.z, dL_dq.w };//dnormvdv(float4{ rot.x, rot.y, rot.z, rot.w }, float4{ dL_dq.x, dL_dq.y, dL_dq.z, dL_dq.w });
 }
 
-__global__ void computeCov3DCUDA(int P,
+static __global__ void computeCov3DCUDA(int P,
 	const float3* means,
-	const int* radii,
+	const int* radii_x, const int* radii_y, const int* radii_z,
 	const float* cov3Ds,
 	const int nVoxel_x, int nVoxel_y, int nVoxel_z,
 	const float sVoxel_x, float sVoxel_y, float sVoxel_z,
@@ -95,7 +95,7 @@ __global__ void computeCov3DCUDA(int P,
 	float* dL_dcov)
 {
 	auto idx = cg::this_grid().thread_rank();
-	if (idx >= P || !(radii[idx] > 0))
+	if (idx >= P || !(radii_x[idx] > 0) || !(radii_y[idx] > 0) || !(radii_z[idx] > 0))
 		return;
 
 	float dVoxel_x = sVoxel_x / (float)nVoxel_x;
@@ -181,7 +181,7 @@ template<int C>
 __global__ void preprocessCUDA(
 	int P,
 	const float3* means,
-	const int* radii,
+	const int* radii_x, const int* radii_y, const int* radii_z,
 	const glm::vec3* scales,
 	const glm::vec4* rotations,
 	const float scale_modifier,
@@ -192,7 +192,7 @@ __global__ void preprocessCUDA(
 	glm::vec4* dL_drot)
 {
 	auto idx = cg::this_grid().thread_rank();
-	if (idx >= P || !(radii[idx] > 0))
+	if (idx >= P || !(radii_x[idx] > 0) || !(radii_y[idx] > 0) || !(radii_z[idx] > 0))
 		return;
 
 	glm::vec3 dL_dmean;
@@ -208,7 +208,7 @@ __global__ void preprocessCUDA(
 
 	// Compute gradient updates due to computing covariance from scale/rotation
 	if (scales)
-		computeCov3D2(idx, scales[idx], scale_modifier, rotations[idx], dL_dcov3D, dL_dscale, dL_drot);
+		computeCov3D(idx, scales[idx], scale_modifier, rotations[idx], dL_dcov3D, dL_dscale, dL_drot);
 
 }
 
@@ -377,7 +377,7 @@ renderCUDA(
 void BACKWARD::preprocess(
 	int P,
 	const float3* means3D,
-	const int* radii,
+	const int* radii_x, const int* radii_y, const int* radii_z,
 	const glm::vec3* scales,
 	const glm::vec4* rotations,
 	const float scale_modifier,
@@ -395,7 +395,7 @@ void BACKWARD::preprocess(
 	computeCov3DCUDA << <(P + 255) / 256, 256 >> > (
 		P,
 		means3D,
-		radii,
+		radii_x, radii_y, radii_z,
 		cov3Ds,
 		nVoxel_x, nVoxel_y, nVoxel_z,
 		sVoxel_x, sVoxel_y, sVoxel_z,
@@ -407,7 +407,7 @@ void BACKWARD::preprocess(
 	preprocessCUDA<NUM_CHANNELS> << < (P + 255) / 256, 256 >> > (
 		P,
 		(float3*)means3D,
-		radii,
+		radii_x, radii_y, radii_z,
 		(glm::vec3*)scales,
 		(glm::vec4*)rotations,
 		scale_modifier,

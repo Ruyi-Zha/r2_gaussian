@@ -32,7 +32,7 @@ namespace cg = cooperative_groups;
 
 // Helper function to find the next-highest bit of the MSB
 // on the CPU.
-uint32_t getHigherMsb2(uint32_t n)
+static uint32_t getHigherMsb(uint32_t n)
 {
 	uint32_t msb = sizeof(n) * 4;
 	uint32_t step = msb;
@@ -51,14 +51,16 @@ uint32_t getHigherMsb2(uint32_t n)
 
 // Generates one key/value pair for all Gaussian / tile overlaps. 
 // Run once per Gaussian (1:N mapping).
-__global__ void duplicateWithKeys2(
+static __global__ void duplicateWithKeys(
 	int P,
 	const float3* points_xyz_vol,
 	const float* depths,
 	const uint32_t* offsets,
 	uint64_t* gaussian_keys_unsorted,
 	uint32_t* gaussian_values_unsorted,
-	int* radii,
+	int* radii_x,
+	int* radii_y,
+	int* radii_z,
 	dim3 grid)
 {
 	auto idx = cg::this_grid().thread_rank();
@@ -66,13 +68,13 @@ __global__ void duplicateWithKeys2(
 		return;
 
 	// Generate no key/value pair for invisible Gaussians
-	if (radii[idx] > 0)
+	if (radii_x[idx] > 0 && radii_y[idx] > 0 && radii_z[idx] > 0)
 	{
 		// Find this Gaussian's offset in buffer for writing keys/values.
 		uint32_t off = (idx == 0) ? 0 : offsets[idx - 1];
 		uint3 cube_min, cube_max;
-
-		getCube(points_xyz_vol[idx], radii[idx], cube_min, cube_max, grid);
+		float3 radii = { (float)radii_x[idx], (float)radii_y[idx], (float)radii_z[idx] };
+		getCube(points_xyz_vol[idx], radii, cube_min, cube_max, grid);
 
 		// For each tile that the bounding rect overlaps, emit a 
 		// key/value pair. The key is |  tile ID  |      depth      |,
@@ -101,7 +103,7 @@ __global__ void duplicateWithKeys2(
 // Check keys to see if it is at the start/end of one tile's range in 
 // the full sorted list. If yes, write start/end of this tile. 
 // Run once per instanced (duplicated) Gaussian ID.
-__global__ void identifyTileRanges2(int L, uint64_t* point_list_keys, uint2* ranges)
+static __global__ void identifyTileRanges(int L, uint64_t* point_list_keys, uint2* ranges)
 {
 	auto idx = cg::this_grid().thread_rank();
 	if (idx >= L)
@@ -129,7 +131,9 @@ CudaVoxelizer::GeometryState CudaVoxelizer::GeometryState::fromChunk(char*& chun
 {
 	GeometryState geom;
 	obtain(chunk, geom.depths, P, 128);
-	obtain(chunk, geom.internal_radii, P, 128);
+	obtain(chunk, geom.internal_radii_x, P, 128);
+	obtain(chunk, geom.internal_radii_y, P, 128);
+	obtain(chunk, geom.internal_radii_z, P, 128);
 	obtain(chunk, geom.means3D_norm, P, 128);
 	obtain(chunk, geom.cov3D, P * 6, 128);
 	obtain(chunk, geom.conic_opacity, P * 7, 128);
@@ -180,7 +184,9 @@ int CudaVoxelizer::Voxelizer::forward(
 	const float* cov3D_precomp,
 	const bool prefiltered,
 	float* out_volume,
-	int* radii,
+	int* radii_x,
+	int* radii_y,
+	int* radii_z,
 	bool debug)
 {
 
@@ -188,9 +194,17 @@ int CudaVoxelizer::Voxelizer::forward(
 	char* chunkptr = geometryBuffer(chunk_size);
 	GeometryState geomState = GeometryState::fromChunk(chunkptr, P);
 	
-	if (radii == nullptr)
+	if (radii_x == nullptr)
 	{
-		radii = geomState.internal_radii;
+		radii_x = geomState.internal_radii_x;
+	}
+	if (radii_y == nullptr)
+	{
+		radii_y = geomState.internal_radii_y;
+	}
+	if (radii_z == nullptr)
+	{
+		radii_z = geomState.internal_radii_z;
 	}
 
 	dim3 tile_grid((nVoxel_x + BLOCK3D_X - 1) / BLOCK3D_X, (nVoxel_y + BLOCK3D_Y - 1) / BLOCK3D_Y, (nVoxel_z + BLOCK3D_Z - 1) / BLOCK3D_Z);
@@ -213,7 +227,9 @@ int CudaVoxelizer::Voxelizer::forward(
 		nVoxel_x, nVoxel_y, nVoxel_z,
 		sVoxel_x, sVoxel_y, sVoxel_z,
 		center_x, center_y, center_z,
-		radii,
+		radii_x,
+		radii_y,
+		radii_z,
 		geomState.means3D_norm,
 		geomState.depths,
 		geomState.cov3D,
@@ -237,18 +253,20 @@ int CudaVoxelizer::Voxelizer::forward(
 
 	// For each instance to be rendered, produce adequate [ tile | depth ] key 
 	// and corresponding dublicated Gaussian indices to be sorted
-	duplicateWithKeys2 << <(P + 255) / 256, 256 >> > (
+	duplicateWithKeys << <(P + 255) / 256, 256 >> > (
 		P,
 		geomState.means3D_norm,
 		geomState.depths,
 		geomState.point_offsets,
 		binningState.point_list_keys_unsorted,
 		binningState.point_list_unsorted,
-		radii,
+		radii_x,
+		radii_y,
+		radii_z,
 		tile_grid)
 	CHECK_CUDA(, debug)
 
-	int bit = getHigherMsb2(tile_grid.x * tile_grid.y * tile_grid.z);
+	int bit = getHigherMsb(tile_grid.x * tile_grid.y * tile_grid.z);
 
 	// Sort complete list of (duplicated) Gaussian indices by keys
 	CHECK_CUDA(cub::DeviceRadixSort::SortPairs(
@@ -262,7 +280,7 @@ int CudaVoxelizer::Voxelizer::forward(
 
 	// Identify start and end of per-tile workloads in sorted list
 	if (num_rendered > 0)
-		identifyTileRanges2 << <(num_rendered + 255) / 256, 256 >> > (
+		identifyTileRanges << <(num_rendered + 255) / 256, 256 >> > (
 			num_rendered,
 			binningState.point_list_keys,
 			imgState.ranges);
@@ -296,7 +314,9 @@ void CudaVoxelizer::Voxelizer::backward(
 	const float scale_modifier,
 	const float* rotations,
 	const float* cov3D_precomp,
-	const int* radii,
+	const int* radii_x,
+	const int* radii_y,
+	const int* radii_z,
 	char* geom_buffer,
 	char* binning_buffer,
 	char* img_buffer,
@@ -314,9 +334,17 @@ void CudaVoxelizer::Voxelizer::backward(
 	BinningState binningState = BinningState::fromChunk(binning_buffer, R);
 	ImageState imgState = ImageState::fromChunk(img_buffer, nVoxel_x * nVoxel_y * nVoxel_z);
 
-	if (radii == nullptr)
+	if (radii_x == nullptr)
 	{
-		radii = geomState.internal_radii;
+		radii_x = geomState.internal_radii_x;
+	}
+	if (radii_y == nullptr)
+	{
+		radii_y = geomState.internal_radii_y;
+	}
+	if (radii_z == nullptr)
+	{
+		radii_z = geomState.internal_radii_z;
 	}
 
 	dim3 tile_grid((nVoxel_x + BLOCK3D_X - 1) / BLOCK3D_X, (nVoxel_y + BLOCK3D_Y - 1) / BLOCK3D_Y, (nVoxel_z + BLOCK3D_Z - 1) / BLOCK3D_Z);
@@ -342,7 +370,9 @@ void CudaVoxelizer::Voxelizer::backward(
 	const float* cov3D_ptr = (cov3D_precomp != nullptr) ? cov3D_precomp : geomState.cov3D;
 	CHECK_CUDA(BACKWARD::preprocess(P, 
 		(float3*)means3D,
-		radii,
+		radii_x,
+		radii_y,
+		radii_z,
 		(glm::vec3*)scales,
 		(glm::vec4*)rotations,
 		scale_modifier,

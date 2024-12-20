@@ -23,17 +23,10 @@
 #include <fstream>
 #include <string>
 #include <functional>
+#include "utility.h"
 
 
-std::function<char*(size_t N)> resizeFunctional2(torch::Tensor& t) {
-    auto lambda = [&t](size_t N) {
-        t.resize_({(long long)N});
-		return reinterpret_cast<char*>(t.contiguous().data_ptr());
-    };
-    return lambda;
-}
-
-std::tuple<int, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor>
+std::tuple<int, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor>
 VoxelizeGaussiansCUDA(
 	const torch::Tensor& means3D,
     const torch::Tensor& opacity,
@@ -63,16 +56,18 @@ VoxelizeGaussiansCUDA(
     auto float_opts = means3D.options().dtype(torch::kFloat32);
 
 	torch::Tensor out_volume = torch::full({nVoxel_x, nVoxel_y, nVoxel_z}, 0.0, float_opts);
-	torch::Tensor radii = torch::full({P}, 0, means3D.options().dtype(torch::kInt32));
+	torch::Tensor radii_x = torch::full({P}, 0, means3D.options().dtype(torch::kInt32));
+	torch::Tensor radii_y = torch::full({P}, 0, means3D.options().dtype(torch::kInt32));
+	torch::Tensor radii_z = torch::full({P}, 0, means3D.options().dtype(torch::kInt32));
 	
 	torch::Device device(torch::kCUDA);
 	torch::TensorOptions options(torch::kByte);
 	torch::Tensor geomBuffer = torch::empty({0}, options.device(device));
 	torch::Tensor binningBuffer = torch::empty({0}, options.device(device));
 	torch::Tensor imgBuffer = torch::empty({0}, options.device(device));
-	std::function<char*(size_t)> geomFunc = resizeFunctional2(geomBuffer);
-	std::function<char*(size_t)> binningFunc = resizeFunctional2(binningBuffer);
-	std::function<char*(size_t)> imgFunc = resizeFunctional2(imgBuffer);
+	std::function<char*(size_t)> geomFunc = resizeFunctional(geomBuffer);
+	std::function<char*(size_t)> binningFunc = resizeFunctional(binningBuffer);
+	std::function<char*(size_t)> imgFunc = resizeFunctional(imgBuffer);
 	
 	int rendered = 0;
 	if(P != 0)
@@ -93,11 +88,13 @@ VoxelizeGaussiansCUDA(
             cov3D_precomp.contiguous().data<float>(), 
             prefiltered,
             out_volume.contiguous().data<float>(),
-            radii.contiguous().data<int>(),
+            radii_x.contiguous().data<int>(),
+			radii_y.contiguous().data<int>(),
+			radii_z.contiguous().data<int>(),
             debug);
 	}
 
-	return std::make_tuple(rendered, out_volume, radii, geomBuffer, binningBuffer, imgBuffer);
+	return std::make_tuple(rendered, out_volume, radii_x, radii_y, radii_z, geomBuffer, binningBuffer, imgBuffer);
 }
 
 
@@ -105,7 +102,9 @@ VoxelizeGaussiansCUDA(
 std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor>
 VoxelizeGaussiansBackwardCUDA(
 	const torch::Tensor& means3D,
-	const torch::Tensor& radii,
+	const torch::Tensor& radii_x,
+	const torch::Tensor& radii_y,
+	const torch::Tensor& radii_z,
 	const torch::Tensor& scales,
 	const torch::Tensor& rotations,
 	const float scale_modifier,
@@ -147,7 +146,9 @@ VoxelizeGaussiansBackwardCUDA(
 		scale_modifier,
 		rotations.data_ptr<float>(),
 		cov3D_precomp.contiguous().data<float>(),
-		radii.contiguous().data<int>(),
+		radii_x.contiguous().data<int>(),
+		radii_y.contiguous().data<int>(),
+		radii_z.contiguous().data<int>(),
 		reinterpret_cast<char*>(geomBuffer.contiguous().data_ptr()),
 		reinterpret_cast<char*>(binningBuffer.contiguous().data_ptr()),
 		reinterpret_cast<char*>(imageBuffer.contiguous().data_ptr()),

@@ -13,8 +13,8 @@
  * 
  */
 
-#ifndef cuda_voxelizer_H_INCLUDED
-#define cuda_voxelizer_H_INCLUDED
+#ifndef CUDA_VOXELIZER_H_INCLUDED
+#define CUDA_VOXELIZER_H_INCLUDED
 
 #include <vector>
 #include <functional>
@@ -41,7 +41,9 @@ namespace CudaVoxelizer
 			const float* cov3D_precomp,
 			const bool prefiltered,
 			float* out_volume,
-			int* radii = nullptr,
+			int* radii_x = nullptr,
+			int* radii_y = nullptr,
+			int* radii_z = nullptr,
 			bool debug = false);
 
 		static void backward(
@@ -54,7 +56,7 @@ namespace CudaVoxelizer
 			const float scale_modifier,
 			const float* rotations,
 			const float* cov3D_precomp,
-			const int* radii,
+			const int* radii_x, const int* radii_y, const int* radii_z,
 			char* geom_buffer,
 			char* binning_buffer,
 			char* img_buffer,

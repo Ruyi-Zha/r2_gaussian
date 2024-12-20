@@ -18,7 +18,7 @@ namespace cg = cooperative_groups;
 // Forward method for converting scale and rotation properties of each
 // Gaussian to a 3D covariance matrix in world space. Also takes care
 // of quaternion normalization.
-__device__ void computeCov3D2(const glm::vec3 scale, float mod, const glm::vec4 rot, float* cov3D)
+static __device__ void computeCov3D(const glm::vec3 scale, float mod, const glm::vec4 rot, float* cov3D)
 {
 	// Create scaling matrix
 	glm::mat3 S = glm::mat3(1.0f);
@@ -66,7 +66,7 @@ __global__ void preprocessCUDA(int P,
 	const int nVoxel_x, int nVoxel_y, int nVoxel_z,
 	const float sVoxel_x, float sVoxel_y, float sVoxel_z,
 	const float center_x, float center_y, float center_z,
-	int* radii,
+	int* radii_x, int* radii_y, int* radii_z,
 	float3* points_xyz_vol,
 	float* depths,
 	float* cov3Ds,
@@ -80,11 +80,11 @@ __global__ void preprocessCUDA(int P,
 	if (idx >= P)
 		return;
 
-	// printf("Now in preprocessCUDA\n");
-
 	// Initialize radius and touched tiles to 0. If this isn't changed,
 	// this Gaussian will not be processed further.
-	radii[idx] = 0;
+	radii_x[idx] = 0;
+	radii_y[idx] = 0;
+	radii_z[idx] = 0;
 	tiles_touched[idx] = 0;
 
 	float dVoxel_x = sVoxel_x / (float)nVoxel_x;
@@ -102,7 +102,7 @@ __global__ void preprocessCUDA(int P,
 	}
 	else
 	{
-		computeCov3D2(scales[idx], scale_modifier, rotations[idx], cov3Ds + idx * 6);
+		computeCov3D(scales[idx], scale_modifier, rotations[idx], cov3Ds + idx * 6);
 		cov3D = cov3Ds + idx * 6;
 	}
 
@@ -134,16 +134,13 @@ __global__ void preprocessCUDA(int P,
 	float inv_e = (hatb * hatc - hata * hate) * det_inv;
 	float inv_f = (hata * hatd - hatb * hatb) * det_inv;
 
-	// printf("inv_a: %f, inv_b: %f, inv_c: %f, inv_d: %f, inv_e: %f, inv_f: %f\n", inv_a, inv_b, inv_c, inv_d, inv_e, inv_f);
-	// glm::mat3 cov_inv = glm::inverse(cov);
-	// printf("cov_inv:\n");
-	// printf("%f\t%f\t%f\n", cov_inv[0][0], cov_inv[0][1], cov_inv[0][2]);
-	// printf("%f\t%f\t%f\n", cov_inv[1][0], cov_inv[1][1], cov_inv[1][2]);
-	// printf("%f\t%f\t%f\n", cov_inv[2][0], cov_inv[2][1], cov_inv[2][2]);
-
 	glm::vec3 scale = scales[idx];
-	float max_scale = max(max(scale.x / dVoxel_x, scale.y/ dVoxel_y), scale.z/ dVoxel_z); 
-	float my_radius = ceil(3.f * max_scale);
+	float max_scale = max(max(scale.x, scale.y), scale.z);
+	float3 my_radius = {
+		ceil((3.f * max_scale) / dVoxel_x),
+		ceil((3.f * max_scale) / dVoxel_y),
+		ceil((3.f * max_scale) / dVoxel_z)
+	};
 
 	float3 point_vol = {(p_orig.x - center_x + sVoxel_x / 2) / dVoxel_x, 
 						(p_orig.y - center_y + sVoxel_y / 2) / dVoxel_y,
@@ -157,11 +154,17 @@ __global__ void preprocessCUDA(int P,
 
 	uint3 cube_min, cube_max;
 	getCube(point_vol, my_radius, cube_min, cube_max, grid);
+	
 
 	if ((cube_max.x - cube_min.x) * (cube_max.y - cube_min.y) * (cube_max.z - cube_min.z) == 0)
 		return;
 	
-	radii[idx] = my_radius;
+	radii_x[idx] = my_radius.x;
+	radii_y[idx] = my_radius.y;
+	radii_z[idx] = my_radius.z;
+
+	// printf("radii_x: %d, radii_y: %d, radii_z: %d\n", radii_x[idx], radii_y[idx], radii_z[idx]);
+
 	tiles_touched[idx] = (cube_max.z - cube_min.z) * (cube_max.y - cube_min.y) * (cube_max.x - cube_min.x);
 	depths[idx] = p_orig.z;  // just give a value
 	points_xyz_vol[idx] = point_vol;
@@ -344,7 +347,7 @@ void FORWARD::preprocess(int P,
 	const int nVoxel_x, int nVoxel_y, int nVoxel_z,
 	const float sVoxel_x, float sVoxel_y, float sVoxel_z,
 	const float center_x, float center_y, float center_z,
-	int* radii,
+	int* radii_x, int* radii_y, int* radii_z,
 	float3* means3D_norm,
 	float* depths,
 	float* cov3Ds,
@@ -365,7 +368,7 @@ void FORWARD::preprocess(int P,
 		nVoxel_x, nVoxel_y, nVoxel_z,
 		sVoxel_x, sVoxel_y, sVoxel_z,
 		center_x, center_y, center_z,
-		radii,
+		radii_x, radii_y, radii_z,
 		means3D_norm,
 		depths,
 		cov3Ds,
