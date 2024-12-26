@@ -147,7 +147,7 @@ __global__ void preprocessCUDA(int P,
 						(p_orig.z - center_z + sVoxel_z / 2) / dVoxel_z};
 
 
-	if (point_vol.x < 0 || point_vol.y < 0 || point_vol.z < 0 || point_vol.x > (float)nVoxel_x || point_vol.y > (float)nVoxel_y || point_vol.z > (float)nVoxel_z)
+    if (point_vol.x + my_radius.x< 0 || point_vol.y + my_radius.y < 0 || point_vol.z + my_radius.z < 0 || point_vol.x - my_radius.x > (float)nVoxel_x || point_vol.y - my_radius.y > (float)nVoxel_y || point_vol.z - my_radius.z > (float)nVoxel_z)
 	{
 		return;
 	}
