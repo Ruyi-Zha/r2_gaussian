@@ -134,8 +134,6 @@ Maximum density for random initialization. `1.0` by default.
 
 :exclamation: Initialization is important for most 3DGS-based methods, including ours. We initialize the point clouds by sampling from a noisy volume reconstructed using the FDK algorithm.
 
-:exclamation: If too many Gaussians are generated, you can adjust `--densify_grad_threshold` by increasing its value or disable density control entirely by setting `--densify_until_iter` to `0`. In most cases, disabling density control does not greatly impact the reconstruction quality if a sufficient number of Gaussians are initialized.
-
 Our default settings assume the density ranges from `[0, 1]`. You may need to adjust the parameters in `initialize_pcd.py` according to your dataset to achieve better results. To assess the quality of the initialization, add `--evaluation` flag.
 
 ### 3.2 Training
@@ -311,6 +309,12 @@ Path to `*.yml` file. If specified, overwrite other parameters.
 </details>
 <br>
 
+:exclamation: If the training speed is slow or too many Gaussians are generated, you can adjust `--densify_grad_threshold` by increasing its value or disable density control entirely by setting `--densify_until_iter` to `0`. In most cases, disabling density control does not greatly impact the reconstruction quality if a sufficient number of Gaussians are initialized.
+
+:exclamation:  We scale the entire scene (scanner, projections, target volume) into a `[-1,1]^3` space for numerical stability.
+
+For our synthetic dataset (`512x512` projections, `256x256x256` volume), the complete training process typically takes `5–15` minutes on an RTX 3090 GPU, with plausible results achievable in `3` minutes. The training time and model size depend on the object's structure. Sparser objects (e.g., a teapot) generally lead to faster training.
+
 You can also use `scripts/train_all.py` to train all cases in a folder.
 
 ```sh
@@ -320,12 +324,6 @@ python scripts/train_all.py \
   --output output/synthetic_dataset/cone_ntrain_50_angle_360 \
   --device 0
 ```
-
-:exclamation:  We scale the entire scene (scanner, projections, target volume) into a `[-1,1]^3` space for numerical stability.
-
-For our synthetic dataset (`512x512` projections, `256x256x256` volume), the complete training process typically takes `5–15` minutes on an RTX 3090 GPU, with plausible results achievable in `3` minutes. The training time and model size depend on the object's structure. Sparser objects (e.g., a teapot) generally lead to faster training.
-
-If training is too slow or there are too many Gaussians (>`200k`), consider adjusting the arguments, particularly those related to adaptive control.
 
 ### 3.3 Evaluation
 
