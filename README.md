@@ -134,6 +134,8 @@ Maximum density for random initialization. `1.0` by default.
 
 :exclamation: Initialization is important for most 3DGS-based methods, including ours. We initialize the point clouds by sampling from a noisy volume reconstructed using the FDK algorithm.
 
+:exclamation: If too many Gaussians are generated, you can adjust `--densify_grad_threshold` by increasing its value or disable density control entirely by setting `--densify_until_iter` to `0`. In most cases, disabling density control does not greatly impact the reconstruction quality if a sufficient number of Gaussians are initialized.
+
 Our default settings assume the density ranges from `[0, 1]`. You may need to adjust the parameters in `initialize_pcd.py` according to your dataset to achieve better results. To assess the quality of the initialization, add `--evaluation` flag.
 
 ### 3.2 Training
