@@ -32,11 +32,18 @@ python data_generator/h5_dataset/convert_h5.py \
   --n_train 50 \
   --n_test 100 \
   --numFF 20 \
-  --darkfield 100
+  --darkfield 100 \
+  --save_mat \
+  --shift_px 5
 ```
 
 The first `numFF` frames are averaged as the flat field. Each projection is
 normalized as `-log((proj - darkfield) / (flat - darkfield))` before being saved.
+
+If `--save_mat` is provided, the processed projections are also written to a
+`mat` subfolder as `0001.mat`, `0002.mat`, ... with variable name `img`.  The
+`--shift_px` option shifts the projections horizontally prior to saving, which
+can be used for simple center-of-rotation correction.
 
 If `--scanner` is omitted, geometry parameters are inferred from the HDF5 file
 (`CT_Camera_Z` and `CT_Pixelsize`) and the following arguments must be supplied:

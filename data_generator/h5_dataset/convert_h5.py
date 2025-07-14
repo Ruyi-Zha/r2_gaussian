@@ -6,6 +6,7 @@ import random
 import numpy as np
 import h5py
 import yaml
+import scipy.io
 
 
 random.seed(0)
@@ -55,6 +56,15 @@ def main(args):
     proj_raw = data[args.numFF :]
     projections = -np.log(np.clip((proj_raw - DF) / (FF - DF), 1e-6, None))
 
+    if args.shift_px != 0:
+        shift = int(args.shift_px)
+        if shift > 0:
+            pad = np.zeros_like(projections[:, :, :shift])
+            projections = np.concatenate([projections[:, :, shift:], pad], axis=2)
+        elif shift < 0:
+            pad = np.zeros_like(projections[:, :, : -shift])
+            projections = np.concatenate([pad, projections[:, :, :shift]], axis=2)
+
     n_proj = projections.shape[0]
     train_ids = np.linspace(0, n_proj - 1, args.n_train).astype(int)
     remain = list(set(range(n_proj)) - set(train_ids))
@@ -66,6 +76,9 @@ def main(args):
     test_path = osp.join(output_path, "proj_test")
     os.makedirs(train_path, exist_ok=True)
     os.makedirs(test_path, exist_ok=True)
+    if args.save_mat:
+        mat_path = osp.join(output_path, "mat")
+        os.makedirs(mat_path, exist_ok=True)
 
     proj_train_list = []
     proj_test_list = []
@@ -73,6 +86,7 @@ def main(args):
     for i in range(n_proj):
         proj = projections[i]
         file_name = f"proj_{i:04d}.npy"
+        mat_name = f"{i+1:04d}.mat"
         if i in train_ids:
             save_rel = osp.join("proj_train", file_name)
             np.save(osp.join(output_path, save_rel), proj)
@@ -81,6 +95,8 @@ def main(args):
             save_rel = osp.join("proj_test", file_name)
             np.save(osp.join(output_path, save_rel), proj)
             proj_test_list.append({"file_path": save_rel, "angle": float(angles[i])})
+        if args.save_mat:
+            scipy.io.savemat(osp.join(mat_path, mat_name), {"img": proj})
 
     scanner_cfg = load_scanner_from_args(
         args, projections.shape, angles, cam_z=cam_z, pixel_size=pixel_size
@@ -116,5 +132,7 @@ if __name__ == "__main__":
     parser.add_argument("--accuracy", type=float, default=0.5, help="Projection accuracy")
     parser.add_argument("--n_train", type=int, default=50, help="Number of training projections")
     parser.add_argument("--n_test", type=int, default=100, help="Number of testing projections")
+    parser.add_argument("--save_mat", action="store_true", help="Save processed projections as .mat files")
+    parser.add_argument("--shift_px", type=int, default=0, help="Pixel shift for center-of-rotation correction")
     args = parser.parse_args()
     main(args)
